@@ -6,6 +6,8 @@ jobs:
   
   mozjs:
     name: 'Building Spidermonkey v${{ matrix.mozjs-version }} @ ${{ matrix.os }}'
+    permissions:
+      contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -146,5 +148,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
+          files: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
