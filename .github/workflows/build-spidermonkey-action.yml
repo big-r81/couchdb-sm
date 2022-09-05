@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         mozjs-version: [ '91' ]
-        os: [ ubuntu-22.04, windows-2022 ]
+        os: [ ubuntu-22.04, windows-2022, macos-12 ]
 
     steps:
       - uses: actions/checkout@v3
@@ -74,11 +74,20 @@ jobs:
         run: |          
           ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
 
-      - name: Preparing Spidermonkey build for Linux/macOS
-        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      - name: Preparing Spidermonkey build for Linux
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Linux'
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal
+
+      - name: Preparing Spidermonkey build for macOS
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
+        #unlink python@3.10 because ./configure will fail when creating _virtualenv
+        run: |
+          brew unlink python@3.10
           ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal
 
       - name: Build Spidermonkey
@@ -110,6 +119,17 @@ jobs:
           cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
           cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/bin/*.so $BUILD_DIR/bin
           cp -L -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
+
+      - name: Build release for macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+        run: |
+          mkdir -p $BUILD_DIR/{bin,lib,include}
+          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
+          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.dylib $BUILD_DIR/bin
+          cp -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
 
       - name: Package Spidermonkey
         shell: bash
