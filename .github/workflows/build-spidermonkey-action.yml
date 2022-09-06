@@ -20,7 +20,7 @@ jobs:
       - name: Detect latest Spidermonkey version
         shell: bash
         run: |
-          ./get_sm.sh ${{ env.mozjs-version }}
+          ./get_sm.sh ${{ matrix.mozjs-version }}
 
       - name: Cache Spidermonkey source
         id: cache-dir
@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir tars
           cd tars
-          ../get_sm.sh ${{ env.mozjs-version }} download
+          ../get_sm.sh ${{ matrix.mozjs-version }} download
 
       - name: Extract Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
