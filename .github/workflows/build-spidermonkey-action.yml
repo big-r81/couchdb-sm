@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        mozjs-version: [ '91' ]
+        mozjs-version: [ 91 ]
         os: [ ubuntu-22.04, windows-2022, macos-12 ]
 
     steps:
@@ -20,7 +20,7 @@ jobs:
       - name: Detect latest Spidermonkey version
         shell: bash
         run: |
-          ./get_sm_91.sh
+          ./get_sm.sh ${{ env.mozjs-version }}
 
       - name: Cache Spidermonkey source
         id: cache-dir
@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir tars
           cd tars
-          ../get_sm_91.sh download
+          ../get_sm.sh ${{ env.mozjs-version }} download
 
       - name: Extract Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
