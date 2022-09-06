@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        mozjs-version: [ 91 ]
+        mozjs-version: [ 91, 102 ]
         os: [ ubuntu-22.04, windows-2022, macos-12 ]
 
     steps:
@@ -74,14 +74,14 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |          
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
 
       - name: Preparing Spidermonkey build for Linux
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Linux'
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Preparing Spidermonkey build for macOS
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS'
@@ -90,7 +90,7 @@ jobs:
         #unlink python@3.10 because ./configure will fail when creating _virtualenv
         run: |
           brew unlink python@3.10
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --disable-logrefcnt --enable-gczeal
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Build Spidermonkey
         if: steps.cache-dir.outputs.cache-hit != 'true'
