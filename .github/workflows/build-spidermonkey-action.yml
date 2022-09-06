@@ -10,6 +10,7 @@ jobs:
       contents: write
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         mozjs-version: [ 91, 102 ]
         os: [ ubuntu-22.04, windows-2022, macos-12 ]
