@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Detect latest Spidermonkey version
         shell: bash
