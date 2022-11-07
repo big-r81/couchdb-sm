@@ -100,8 +100,8 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         #unlink python@3.10 because ./configure will fail when creating _virtualenv
+        #brew unlink python@3.10
         run: |
-          brew unlink python@3.10
           ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Build Spidermonkey
