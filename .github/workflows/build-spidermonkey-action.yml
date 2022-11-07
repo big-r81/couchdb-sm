@@ -77,7 +77,9 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/mozglue/misc
         run: |
-          sed '/"WindowsDllMain.cpp"/d' moz.build > moz.build
+          ls -al *.build
+          mv moz.build moz.build.org
+          sed '/"WindowsDllMain.cpp"/d' moz.build.org > moz.build
         
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
