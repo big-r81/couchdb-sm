@@ -13,12 +13,16 @@ jobs:
       fail-fast: false
       matrix:
         mozjs-version: [ 91, 102 ]
-        os: [ ubuntu-22.04, windows-2022, macos-11 ]
+        os: [ ubuntu-22.04, windows-2022, macos-12 ]
 
     steps:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
       - name: Detect latest Spidermonkey version
         shell: bash
