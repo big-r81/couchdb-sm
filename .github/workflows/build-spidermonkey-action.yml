@@ -81,7 +81,6 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/mozglue/misc
         run: |
-          ls -al *.build
           mv moz.build moz.build.org
           sed '/"WindowsDllMain.cpp"/d' moz.build.org > moz.build
         
@@ -97,7 +96,7 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Preparing Spidermonkey build for macOS
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS'
