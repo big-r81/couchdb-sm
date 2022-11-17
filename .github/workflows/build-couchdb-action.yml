@@ -1,0 +1,210 @@
+name: Build Apache Couchdb
+
+on: [ workflow_dispatch,push ]
+
+env:
+  GLAZIER_PATH: glazier
+  COUCHDB_PATH: couchdb
+
+jobs:
+  
+  couchdb-win:
+    name: 'Building Apache CouchDB v${{ matrix.couchdb-version }} @ ${{ matrix.os }}'
+    permissions:
+      contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        couchdb-version: [ 3.2.2 ]
+        os: [ windows-2022 ]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Checkout Glazier
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          repository: apache/couchdb-glazier
+          path: '${{ env.GLAZIER_PATH }}'
+
+      - name: Checkout CouchDB
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          repository: apache/couchdb
+          path: '${{ env.COUCHDB_PATH }}'
+
+      - name: Show relax dir
+        shell: pwsh
+        run: |
+          ls
+          ls .\glazier\bin
+          &.\glazier\bin\shell.ps1
+
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '25.1'
+          elixir-version: '1.13.4'
+
+      - name: Installing Choco packages
+        shell: pwsh
+        run: |
+          choco install gnuwin32-coreutils.install nodejs-lts wixtoolset make nssm vswhere
+
+      - name: Setting up dependencies
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider -Name PowerShellGet  -Force
+          Install-Module VSSetup -Scope CurrentUser -Force
+          python -m pip install --upgrade pip
+          pip install --upgrade sphinx sphinx_rtd_theme pygments nose2 hypothesis       
+
+      - name: Show relax dir
+        shell: pwsh
+        run: |
+          ls
+          ls .\glazier
+          cl.exe
+          &.\glazier\bin\shell.ps1
+          cl.exe
+          cd couchdb
+          &.\configure.ps1 -SpiderMonkeyVersion 91
+          make -f Makefile.win
+
+#      - name: Detect latest Spidermonkey version
+#        shell: bash
+#        run: |
+#          ./get_sm.sh ${{ matrix.mozjs-version }}
+#
+#      - name: Cache Spidermonkey source
+#        id: cache-dir
+#        uses: actions/cache@v3
+#        with:
+#          path: |
+#            ${{ env.MOZJS_DIR }}
+#          key: ${{runner.os}}-${{ env.MOZJS_DIR }}
+#
+#      - name: Download Spidermonkey source
+#        if: steps.cache-dir.outputs.cache-hit != 'true'
+#        shell: bash
+#        run: |
+#          mkdir tars
+#          cd tars
+#          ../get_sm.sh ${{ matrix.mozjs-version }} download
+#
+#      - name: Extract Spidermonkey source
+#        if: steps.cache-dir.outputs.cache-hit != 'true'
+#        shell: bash
+#        run: |
+#          tar -xf tars/${{ env.MOZJS_TAR}}
+#
+#      - name: Download and extract M4 build tool
+#        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
+#        shell: bash
+#        run: |
+#          curl -s -L --output m4.pkg.tar.zst https://mirror.msys2.org/msys/x86_64/m4-1.4.19-2-x86_64.pkg.tar.zst
+#          zstd -d m4.pkg.tar.zst
+#          tar -xf m4.pkg.tar
+#          echo "M4=${{ github.workspace }}\usr\bin\m4.exe" >> $GITHUB_ENV
+#
+#      # thanks to https://github.com/conda-forge/pkg-config-feedstock/issues/37
+#      - name: Solve pkg-config problem
+#        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
+#        shell: bash -l {0}
+#        run: |
+#          mv /c/Strawberry /c/tmp-Strawberry
+#
+#      - name: Preparing Spidermonkey build
+#        if: steps.cache-dir.outputs.cache-hit != 'true'
+#        shell: bash
+#        run: |
+#          cd ${{ env.MOZJS_DIR }}/js/src
+#          cp ./configure.in ./configure
+#          chmod +x ./configure
+#          mkdir -p build-opt
+#
+#      - name: Preparing Spidermonkey build for Windows (SM v102) Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1751561)
+#        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '102'
+#        shell: bash
+#        working-directory: ${{ env.MOZJS_DIR }}/mozglue/misc
+#        run: |
+#          mv moz.build moz.build.org
+#          sed '/"WindowsDllMain.cpp"/d' moz.build.org > moz.build
+#
+#      - name: Preparing Spidermonkey build for Windows
+#        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
+#        shell: bash
+#        working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
+#        run: |
+#          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
+#
+#      - name: Preparing Spidermonkey build for Linux / macOS
+#        if: steps.cache-dir.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
+#        shell: bash
+#        working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
+#        run: |
+#          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
+#
+#      - name: Build Spidermonkey
+#        if: steps.cache-dir.outputs.cache-hit != 'true'
+#        shell: bash
+#        working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
+#        run: |
+#          make
+#
+#      - name: Build release for Windows
+#        if: runner.os == 'Windows'
+#        shell: bash
+#        env:
+#          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+#        run: |
+#          mkdir -p $BUILD_DIR/{bin,lib,include}
+#          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.pdb $BUILD_DIR/bin
+#          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.lib $BUILD_DIR/lib
+#          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/bin/*.dll $BUILD_DIR/bin
+#          cp -L -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
+#
+#      - name: Build release for Linux
+#        if: runner.os == 'Linux'
+#        shell: bash
+#        env:
+#          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+#        run: |
+#          mkdir -p $BUILD_DIR/{bin,lib,include}
+#          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
+#          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/bin/*.so $BUILD_DIR/bin
+#          cp -L -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
+#
+#      - name: Build release for macOS
+#        if: runner.os == 'macOS'
+#        shell: bash
+#        env:
+#          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+#        run: |
+#          mkdir -p $BUILD_DIR/{bin,lib,include}
+#          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
+#          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.dylib $BUILD_DIR/bin
+#          cp -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
+#
+#      - name: Package Spidermonkey
+#        shell: bash
+#        run: |
+#          XZ_OPT='-9' tar cvJf ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+#
+#      - name: Archive Spidermonkey
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+#          path: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
+#
+#      - name: Release Spidermonkey
+#        uses: softprops/action-gh-release@v1
+#        if: startsWith(github.ref, 'refs/tags/')
+#        with:
+#          files: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
