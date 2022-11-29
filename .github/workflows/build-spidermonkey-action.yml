@@ -81,9 +81,17 @@ jobs:
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/mozglue/misc
         run: |
-          mv moz.build moz.build.org
-          sed '/"WindowsDllMain.cpp"/d' moz.build.org > moz.build
-        
+          mv moz.build moz.build1.org
+          sed '/"WindowsDllMain.cpp"/d' moz.build1.org > moz.build
+
+      - name: Preparing Spidermonkey build for Windows (SM v91 & v102) Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1802675)
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/memory/mozalloc
+        run: |
+          mv moz.build moz.build2.org
+          sed 's/if CONFIG\["OS_TARGET"\] == "WINNT":/if CONFIG["MOZ_MEMORY"] and CONFIG["OS_TARGET"] == "WINNT":/g' moz.build2.org > moz.build
+          
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
