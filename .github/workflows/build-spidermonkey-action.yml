@@ -3,7 +3,7 @@ name: Couchdb Spidermonkey
 on: [ workflow_dispatch,push ]
 
 jobs:
-  
+
   mozjs:
     name: 'Building Spidermonkey v${{ matrix.mozjs-version }} @ ${{ matrix.os }}'
     permissions:
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
-      
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -72,9 +72,17 @@ jobs:
         shell: bash
         run: |
           cd ${{ env.MOZJS_DIR }}/js/src
-          cp ./configure.in ./configure
+          if [ ! -f "./configure" ]; then cp ./configure.in ./configure; fi
           chmod +x ./configure
           mkdir -p build-opt
+
+      - name: Preparing Spidermonkey build for Windows (SM v91) Pre-Step (remove "-fexperimental-new-pass-manager")
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '91'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/build/moz.configure
+        run: |
+          mv flags.configure flags.configure1.org
+          sed '56,60d' flags.configure1.org > flags.configure
 
       - name: Preparing Spidermonkey build for Windows (SM v102) Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1751561)
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '102'
@@ -91,20 +99,20 @@ jobs:
         run: |
           mv moz.build moz.build2.org
           sed 's/if CONFIG\["OS_TARGET"\] == "WINNT":/if CONFIG["MOZ_MEMORY"] and CONFIG["OS_TARGET"] == "WINNT":/g' moz.build2.org > moz.build
-          
+
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |          
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-tests --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
 
       - name: Preparing Spidermonkey build for Linux / macOS
         if: steps.cache-dir.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-tests --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Build Spidermonkey
         if: steps.cache-dir.outputs.cache-hit != 'true'
