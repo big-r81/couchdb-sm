@@ -14,7 +14,7 @@ fi
 re='^[0-9]+$'
 if ! [[ $1 =~ $re ]] ; then
    echo "Warning: lts-version is not a number, using 102 as default value!" >&2;
-   LTS=102
+   LTS=115
 else
   LTS=$1
 fi
@@ -35,6 +35,13 @@ esac
 if [ "$LTS" -eq 91 ]; then
   # EOL Spidermonkey versions
   DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/91.13.0esr/source/firefox-91.13.0esr.source.tar.xz"
+  # download old version from Mozilla archive server
+  if [ "$DOWNLOAD" == "true" ]; then
+    curl -s -L -O -J "$DOWNLOAD_URL"
+  fi
+elif [ "$LTS" -eq 102 ]; then
+  # EOL Spidermonkey versions
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/102.15.1esr/source/firefox-102.15.1esr.source.tar.xz"
   # download old version from Mozilla archive server
   if [ "$DOWNLOAD" == "true" ]; then
     curl -s -L -O -J "$DOWNLOAD_URL"
@@ -62,7 +69,7 @@ fi
 # Set env variables for GH action
 if [ "$CI" == "true" ] && [ "$DOWNLOAD" == "true" ]; then
   echo "MOZJS_TAR=$(basename "$DOWNLOAD_URL")" >> $GITHUB_ENV
-  if [ "$LTS" -eq 91 ]; then
+  if [ "$LTS" -eq 91 ] || ["$LTS" -eq 102 ]; then
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" esr.source.tar.xz)" >> $GITHUB_ENV
   else
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" .tar.xz)" >> $GITHUB_ENV
