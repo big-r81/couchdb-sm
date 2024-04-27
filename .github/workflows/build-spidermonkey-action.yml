@@ -3,7 +3,7 @@ name: Couchdb Spidermonkey
 on: [ workflow_dispatch,push ]
 
 jobs:
-  
+
   mozjs:
     name: 'Building Spidermonkey v${{ matrix.mozjs-version }} @ ${{ matrix.os }}'
     permissions:
@@ -12,17 +12,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: [ 91, 102 ]
-        os: [ ubuntu-22.04, windows-2022, macos-12 ]
+        mozjs-version: [ 91, 102, 115 ]
+        os: [ ubuntu-22.04, windows-2022, macos-13 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      
-      - uses: actions/setup-python@v4
+
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Detect latest Spidermonkey version
         shell: bash
@@ -72,9 +72,17 @@ jobs:
         shell: bash
         run: |
           cd ${{ env.MOZJS_DIR }}/js/src
-          cp ./configure.in ./configure
+          if [ ! -f "./configure" ]; then cp ./configure.in ./configure; fi
           chmod +x ./configure
           mkdir -p build-opt
+
+      - name: Preparing Spidermonkey build for Windows (SM v91) Pre-Step (remove "-fexperimental-new-pass-manager")
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '91'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/build/moz.configure
+        run: |
+          mv flags.configure flags.configure1.org
+          sed '56,60d' flags.configure1.org > flags.configure
 
       - name: Preparing Spidermonkey build for Windows (SM v102) Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1751561)
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '102'
@@ -85,26 +93,60 @@ jobs:
           sed '/"WindowsDllMain.cpp"/d' moz.build1.org > moz.build
 
       - name: Preparing Spidermonkey build for Windows (SM v91 & v102) Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1802675)
-        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version != '115'
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/memory/mozalloc
         run: |
           mv moz.build moz.build2.org
           sed 's/if CONFIG\["OS_TARGET"\] == "WINNT":/if CONFIG["MOZ_MEMORY"] and CONFIG["OS_TARGET"] == "WINNT":/g' moz.build2.org > moz.build
-          
+
+      - name: Preparing Spidermonkey build for macOS Pre-Step (https://bugzilla.mozilla.org/show_bug.cgi?id=1802675)
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/build/moz.configure/
+        run: |
+          echo "INSTALL_NAME_TOOL=$(which install_name_tool)" >> $GITHUB_ENV
+          ${{ env.INSTALL_NAME_TOOL }}
+          which install_name_tool
+          mv toolchain.configure toolchain.configure2.org
+          sed 's/"-Wl,--version"/"-Wl,-ld_classic,--version"/g' toolchain.configure2.org > toolchain.configure
+
+      - name: Preparing Spidermonkey build for Windows (SM v91) Add "ntdll.lib" as a linking library (https://users.rust-lang.org/t/rust-compiler-error-when-linking-with-windows-dll/98504)
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '91'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/js/src/build
+        run: |
+          mv moz.build moz.build2.org
+          sed 's/"bcrypt",/"bcrypt", "ntdll",/g' moz.build2.org > moz.build
+
+      - name: Set NO_ANSI environment variable to prevent ./configure error on Windows (SM v115) (https://bugzilla.mozilla.org/show_bug.cgi?id=1893252)
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '115'
+        shell: bash
+        run: |
+          echo "NO_ANSI=true" >> $GITHUB_ENV
+
+      - name: Fix "BailoutStack should be 8-byte aligned." error on Windows (SM v115) (https://bugzilla.mozilla.org/show_bug.cgi?id=1893416)
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows' && matrix.mozjs-version == '115'
+        shell: bash
+        working-directory: ${{ env.MOZJS_DIR }}/js/src/jit
+        run: |
+          sed -i 's/\/\/ Make sure the compiler doesn\x27t add extra padding on 32-bit platforms\./#if \!defined\(JS_CODEGEN_NONE\)\n\/\/ Make sure the compiler doesn\x27t add extra padding on 32-bit platforms\./g' Bailouts.cpp
+          sed -i 's/"BailoutStack should be 8-byte aligned.");/"BailoutStack should be 8-byte aligned.");\n#endif/g' Bailouts.cpp
+          cat Bailouts.cpp
+
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
-        run: |          
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
+        run: |
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-tests --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32
 
       - name: Preparing Spidermonkey build for Linux / macOS
         if: steps.cache-dir.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
         working-directory: ${{ env.MOZJS_DIR }}/js/src/build-opt
         run: |
-          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
+          ../configure --enable-shared-js --disable-ctypes --disable-jit --disable-tests --disable-jemalloc --enable-optimize --enable-hardening --without-intl-api --build-backends=RecursiveMake --disable-debug --enable-gczeal
 
       - name: Build Spidermonkey
         if: steps.cache-dir.outputs.cache-hit != 'true'

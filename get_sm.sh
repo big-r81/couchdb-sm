@@ -13,8 +13,8 @@ fi
 
 re='^[0-9]+$'
 if ! [[ $1 =~ $re ]] ; then
-   echo "Warning: lts-version is not a number, using 91 as default value!" >&2;
-   LTS=91
+   echo "Warning: lts-version is not a number, using 102 as default value!" >&2;
+   LTS=115
 else
   LTS=$1
 fi
@@ -32,24 +32,53 @@ case "$OSTYPE" in
             ;;
 esac
 
-repo="mozilla-esr$LTS"
-jobs=( $(curl -s "https://treeherder.mozilla.org/api/project/$repo/push/?full=true&count=10" | jq 'try .results[].id') )
+if [ "$LTS" -eq 91 ]; then
+  # EOL Spidermonkey versions
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/91.13.0esr/source/firefox-91.13.0esr.source.tar.xz"
+  # download old version from Mozilla archive server
+  if [ "$DOWNLOAD" == "true" ]; then
+    curl -s -L -O -J "$DOWNLOAD_URL"
+  fi
+elif [ "$LTS" -eq 102 ]; then
+  # EOL Spidermonkey versions
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/102.15.1esr/source/firefox-102.15.1esr.source.tar.xz"
+  # download old version from Mozilla archive server
+  if [ "$DOWNLOAD" == "true" ]; then
+    curl -s -L -O -J "$DOWNLOAD_URL"
+  fi
+elif [ "$LTS" -eq 115 ]; then
+  # EOL Spidermonkey versions
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/115.9.1esr/source/firefox-115.9.1esr.source.tar.xz"
+  # download old version from Mozilla archive server
+  if [ "$DOWNLOAD" == "true" ]; then
+    curl -s -L -O -J "$DOWNLOAD_URL"
+  fi
+else
+  repo="mozilla-esr$LTS"
+  jobs=( $(curl -s "https://treeherder.mozilla.org/api/project/$repo/push/?full=true&count=10" | jq 'try .results[].id') )
 
-for i in "${jobs[@]}"
-do
-    task_id=$(curl -s "https://treeherder.mozilla.org/api/jobs/?push_id=$i" | jq -r '.results[] | select(.[] == "spidermonkey-sm-package-linux64/opt") | .[14]')
-    if [ -n "${task_id}" ]; then
-        echo "Task id ($task_id)"
-        tar_file=$(curl -s "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts" | jq -r '.artifacts[] | select(.name | contains("tar.xz")) | .name')
-        echo "Tar at https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts/$tar_file"
-        #set envs if running in GH
-        if [ "$CI" == "true" ]; then
-          echo "MOZJS_TAR=$(basename "$tar_file")" >> $GITHUB_ENV
-          echo "MOZJS_DIR=$(basename "$tar_file" .tar.xz)" >> $GITHUB_ENV
-        fi
-        if [ "$DOWNLOAD" == "true" ]; then
-          curl -s -L -O -J "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts/$tar_file"
-        fi
-        break
-    fi
-done
+  for i in "${jobs[@]}"
+  do
+      task_id=$(curl -s "https://treeherder.mozilla.org/api/jobs/?push_id=$i" | jq -r '.results[] | select(.[] == "spidermonkey-sm-package-linux64/opt") | .[14]')
+      if [ -n "${task_id}" ]; then
+          echo "Task id ($task_id)"
+          tar_file=$(curl -s "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts" | jq -r '.artifacts[] | select(.name | contains("tar.xz")) | .name')
+          echo "Tar at https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts/$tar_file"
+          if [ "$DOWNLOAD" == "true" ]; then
+            DOWNLOAD_URL="https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/$task_id/runs/0/artifacts/$tar_file"
+            curl -s -L -O -J "$DOWNLOAD_URL"
+          fi
+          break
+      fi
+  done
+fi
+
+# Set env variables for GH action
+if [ "$CI" == "true" ] && [ "$DOWNLOAD" == "true" ]; then
+  echo "MOZJS_TAR=$(basename "$DOWNLOAD_URL")" >> $GITHUB_ENV
+  if [ "$LTS" -eq 91 ] || [ "$LTS" -eq 102 ] || [ "$LTS" -eq 115 ]; then
+    echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" esr.source.tar.xz)" >> $GITHUB_ENV
+  else
+    echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" .tar.xz)" >> $GITHUB_ENV
+  fi
+fi
