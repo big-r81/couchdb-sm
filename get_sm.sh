@@ -53,6 +53,13 @@ elif [ "$LTS" -eq 115 ]; then
   if [ "$DOWNLOAD" == "true" ]; then
     curl -s -L -O -J "$DOWNLOAD_URL"
   fi
+elif [ "$LTS" -eq 128 ]; then
+  # EOL Spidermonkey versions
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/128.3.1esr/source/firefox-128.3.1esr.source.tar.xz"
+  # download old version from Mozilla archive server
+  if [ "$DOWNLOAD" == "true" ]; then
+    curl -s -L -O -J "$DOWNLOAD_URL"
+  fi
 else
   repo="mozilla-esr$LTS"
   jobs=( $(curl -s "https://treeherder.mozilla.org/api/project/$repo/push/?full=true&count=10" | jq 'try .results[].id') )
