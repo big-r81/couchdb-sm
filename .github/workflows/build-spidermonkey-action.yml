@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: [ 91, 102, 115 ]
+        mozjs-version: [ 91, 102, 115, 128 ]
         os: [ ubuntu-22.04, windows-2022, macos-13 ]
 
     steps:
