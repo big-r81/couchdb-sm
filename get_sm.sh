@@ -83,7 +83,7 @@ fi
 # Set env variables for GH action
 if [ "$CI" == "true" ] && [ "$DOWNLOAD" == "true" ]; then
   echo "MOZJS_TAR=$(basename "$DOWNLOAD_URL")" >> $GITHUB_ENV
-  if [ "$LTS" -eq 91 ] || [ "$LTS" -eq 102 ] || [ "$LTS" -eq 115 ]; then
+  if [ "$LTS" -eq 91 ] || [ "$LTS" -eq 102 ] || [ "$LTS" -eq 115 ] || [ "$LTS" -eq 128 ]; then
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" esr.source.tar.xz)" >> $GITHUB_ENV
   else
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" .tar.xz)" >> $GITHUB_ENV
