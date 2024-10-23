@@ -24,15 +24,18 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Detect latest Spidermonkey version
+      - name: Download Spidermonkey source
+        if: steps.cache-dir.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          ./get_sm.sh ${{ matrix.mozjs-version }}
+          mkdir tars
+          cd tars
+          ../get_sm.sh ${{ matrix.mozjs-version }} download
 
       - name: Print env vars
         shell: bash
         run: |
-          echo "$MOZJS_DIR"
+          echo ${{ env.MOZJS_TAR}}
           
       - name: Cache Spidermonkey source
         id: cache-dir
@@ -41,14 +44,6 @@ jobs:
           key: ${{ runner.os }}-${{ env.MOZJS_DIR }}
           path: |
             ${{ env.MOZJS_DIR }}
-
-      - name: Download Spidermonkey source
-        if: steps.cache-dir.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          mkdir tars
-          cd tars
-          ../get_sm.sh ${{ matrix.mozjs-version }} download
 
       - name: Extract Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
