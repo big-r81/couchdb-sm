@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: [ 91, 102, 115 ]
-        os: [ ubuntu-22.04, windows-2022, macos-13 ]
+        mozjs-version: [ 91, 102, 115, 128 ]
+        os: [ ubuntu-22.04, windows-2022, macos-14 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,19 +24,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Detect latest Spidermonkey version
-        shell: bash
-        run: |
-          ./get_sm.sh ${{ matrix.mozjs-version }}
-
-      - name: Cache Spidermonkey source
-        id: cache-dir
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ env.MOZJS_DIR }}
-          key: ${{runner.os}}-${{ env.MOZJS_DIR }}
-
       - name: Download Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
         shell: bash
@@ -44,6 +31,14 @@ jobs:
           mkdir tars
           cd tars
           ../get_sm.sh ${{ matrix.mozjs-version }} download
+
+      - name: Cache Spidermonkey source
+        id: cache-dir
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ env.MOZJS_DIR }}
+          path: |
+            ${{ env.MOZJS_DIR }}
 
       - name: Extract Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
@@ -134,6 +129,12 @@ jobs:
           sed -i 's/"BailoutStack should be 8-byte aligned.");/"BailoutStack should be 8-byte aligned.");\n#endif/g' Bailouts.cpp
           cat Bailouts.cpp
 
+      - name: Install cbindgen on th macOS 14 runner
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS' && matrix.mozjs-version == '128'
+        shell: bash
+        run: |
+          cargo install --force cbindgen
+        
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
@@ -185,9 +186,9 @@ jobs:
           BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
         run: |
           mkdir -p $BUILD_DIR/{bin,lib,include}
-          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
-          cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.dylib $BUILD_DIR/bin
-          cp -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
+          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
+          cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/bin/*.dylib $BUILD_DIR/bin
+          cp -L -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
 
       - name: Package Spidermonkey
         shell: bash
@@ -195,7 +196,7 @@ jobs:
           XZ_OPT='-9' tar cvJf ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
 
       - name: Archive Spidermonkey
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
           path: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
