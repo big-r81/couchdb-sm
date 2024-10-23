@@ -191,6 +191,8 @@ jobs:
           BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
         run: |
           mkdir -p $BUILD_DIR/{bin,lib,include}
+          ls -al ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build
+          ls -al ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include
           cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
           cp ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.dylib $BUILD_DIR/bin
           cp -r ${{ env.MOZJS_DIR }}/js/src/build-opt/dist/include/* $BUILD_DIR/include
