@@ -134,6 +134,12 @@ jobs:
           sed -i 's/"BailoutStack should be 8-byte aligned.");/"BailoutStack should be 8-byte aligned.");\n#endif/g' Bailouts.cpp
           cat Bailouts.cpp
 
+      - name: Install cbindgen on th macOS 14 runner
+        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS' && matrix.mozjs-version == '128'
+        shell: bash
+        run: |
+          cargo install --force cbindgen
+        
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
