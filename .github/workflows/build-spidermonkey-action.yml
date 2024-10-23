@@ -28,8 +28,13 @@ jobs:
         shell: bash
         run: |
           ./get_sm.sh ${{ matrix.mozjs-version }}
-          echo ${{ env }}
 
+      - name: Print env vars
+        shell: bash
+        run: |
+          echo ${{ env.MOZJS_DIR }}
+          echo ${{ env }}
+          
       - name: Cache Spidermonkey source
         id: cache-dir
         uses: actions/cache@v4
