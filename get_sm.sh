@@ -13,8 +13,8 @@ fi
 
 re='^[0-9]+$'
 if ! [[ $1 =~ $re ]] ; then
-   echo "Warning: lts-version is not a number, using 102 as default value!" >&2;
-   LTS=115
+   echo "Warning: lts-version is not a number, using 128 as default value!" >&2;
+   LTS=128
 else
   LTS=$1
 fi
@@ -83,9 +83,12 @@ fi
 # Set env variables for GH action
 if [ "$CI" == "true" ] && [ "$DOWNLOAD" == "true" ]; then
   echo "MOZJS_TAR=$(basename "$DOWNLOAD_URL")" >> $GITHUB_ENV
+  echo "MOZJS_TAR=$(basename "$DOWNLOAD_URL")"
   if [ "$LTS" -eq 91 ] || [ "$LTS" -eq 102 ] || [ "$LTS" -eq 115 ] || [ "$LTS" -eq 128 ]; then
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" esr.source.tar.xz)" >> $GITHUB_ENV
+    echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" esr.source.tar.xz)"
   else
     echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" .tar.xz)" >> $GITHUB_ENV
+    echo "MOZJS_DIR=$(basename "$DOWNLOAD_URL" .tar.xz)"
   fi
 fi
