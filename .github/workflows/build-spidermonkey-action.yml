@@ -32,11 +32,6 @@ jobs:
           cd tars
           ../get_sm.sh ${{ matrix.mozjs-version }} download
 
-      - name: Print env vars
-        shell: bash
-        run: |
-          echo ${{ env.MOZJS_TAR}}
-          
       - name: Cache Spidermonkey source
         id: cache-dir
         uses: actions/cache@v4
