@@ -201,7 +201,7 @@ jobs:
           XZ_OPT='-9' tar cvJf ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
 
       - name: Archive Spidermonkey
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
           path: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
