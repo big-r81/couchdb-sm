@@ -25,20 +25,20 @@ jobs:
           python-version: '3.10'
 
       - name: Download Spidermonkey source
-        if: steps.cache-dir.outputs.cache-hit != 'true'
+        #if: steps.cache-dir.outputs.cache-hit != 'true'
         shell: bash
         run: |
           mkdir tars
           cd tars
           ../get_sm.sh ${{ matrix.mozjs-version }} download
 
-      - name: Cache Spidermonkey source
-        id: cache-dir
-        uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-${{ env.MOZJS_DIR }}
-          path: |
-            ${{ env.MOZJS_DIR }}
+      #- name: Cache Spidermonkey source
+      #  id: cache-dir
+      #  uses: actions/cache@v4
+      #  with:
+      #    key: ${{ runner.os }}-${{ env.MOZJS_DIR }}
+      #    path: |
+      #      ${{ env.MOZJS_DIR }}
 
       - name: Extract Spidermonkey source
         if: steps.cache-dir.outputs.cache-hit != 'true'
