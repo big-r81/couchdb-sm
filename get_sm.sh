@@ -55,7 +55,7 @@ elif [ "$LTS" -eq 115 ]; then
   fi
 elif [ "$LTS" -eq 128 ]; then
   # EOL Spidermonkey versions
-  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/128.5.0esr/source/firefox-128.5.0esr.source.tar.xz"
+  DOWNLOAD_URL="https://archive.mozilla.org/pub/firefox/releases/128.5.2esr/source/firefox-128.5.2esr.source.tar.xz"
   # download old version from Mozilla archive server
   if [ "$DOWNLOAD" == "true" ]; then
     curl -s -L -O -J "$DOWNLOAD_URL"
