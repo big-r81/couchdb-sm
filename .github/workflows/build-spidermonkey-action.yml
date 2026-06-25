@@ -13,14 +13,14 @@ jobs:
       fail-fast: false
       matrix:
         mozjs-version: [ 91, 102, 115, 128, 140 ]
-        os: [ windows-2025 ]
+        os: [ ubuntu-24.04, ubuntu-24.04-arm, windows-2025 ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -34,7 +34,7 @@ jobs:
 
       - name: Cache Spidermonkey source
         id: cache-dir
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           key: ${{ runner.os }}-${{ env.MOZJS_DIR }}
           path: |
@@ -197,13 +197,13 @@ jobs:
           XZ_OPT='-9' tar cvJf ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
 
       - name: Archive Spidermonkey
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
           path: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz
 
       - name: Release Spidermonkey
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz
