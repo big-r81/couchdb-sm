@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: [ 91, 102, 115, 128 ]
-        os: [ ubuntu-22.04, windows-2022, macos-14 ]
+        mozjs-version: [ 91, 102, 115, 128, 140 ]
+        os: [ windows-2025 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -130,11 +130,12 @@ jobs:
           cat Bailouts.cpp
 
       - name: Install cbindgen on th macOS 14 runner
-        if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'macOS' && matrix.mozjs-version == '128'
+        if: steps.cache-dir.outputs.cache-hit != 'true'
+        #&& runner.os == 'macOS' && matrix.mozjs-version == '128'
         shell: bash
         run: |
           cargo install --force cbindgen
-        
+
       - name: Preparing Spidermonkey build for Windows
         if: steps.cache-dir.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: bash
@@ -160,7 +161,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         env:
-          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+          BUILD_DIR: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
         run: |
           mkdir -p $BUILD_DIR/{bin,lib,include}
           cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.pdb $BUILD_DIR/bin
@@ -172,7 +173,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         env:
-          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+          BUILD_DIR: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
         run: |
           mkdir -p $BUILD_DIR/{bin,lib,include}
           cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
@@ -183,7 +184,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         env:
-          BUILD_DIR: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+          BUILD_DIR: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
         run: |
           mkdir -p $BUILD_DIR/{bin,lib,include}
           cp -L ${{ env.MOZJS_DIR }}/js/src/build-opt/js/src/build/*.a $BUILD_DIR/lib
@@ -193,16 +194,16 @@ jobs:
       - name: Package Spidermonkey
         shell: bash
         run: |
-          XZ_OPT='-9' tar cvJf ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
+          XZ_OPT='-9' tar cvJf ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
 
       - name: Archive Spidermonkey
         uses: actions/upload-artifact@v4
         with:
-          name: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}
-          path: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
+          name: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}
+          path: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz
 
       - name: Release Spidermonkey
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{runner.os}}-mozjs-${{matrix.mozjs-version}}.tar.xz
+          files: ${{runner.os}}-${{runner.arch}}-mozjs-${{matrix.mozjs-version}}.tar.xz
